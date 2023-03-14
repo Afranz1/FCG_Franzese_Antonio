@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - NURBS</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				background-color: #79c3e0;
+				color: #444;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - Hello my name is Antonio Franzese
+		</div>
+		
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import Stats from './jsm/libs/stats.module.js';
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { NURBSCurve } from './jsm/curves/NURBSCurve.js';
+			import { NURBSSurface } from './jsm/curves/NURBSSurface.js';
+			import { ParametricGeometry } from './jsm/geometries/ParametricGeometry.js';
+			import {OBJLoader} from './jsm/loaders/OBJLoader.js';
+			import { GUI } from './jsm/libs/lil-gui.module.min.js';
+			//import {MTLLoader} from './jsm/loaders/MTLLoader.js';
+
+			let container, stats;
+
+			let camera, scene, renderer;
+			let group;
+			let scaleGroup;
+			let nurbsLine;
+
+			let targetRotation = 0;
+			let targetRotationOnPointerDown = 0;
+
+			let pointerX = 0;
+			let pointerXOnPointerDown = 0;
+
+			let windowHalfX = window.innerWidth / 2;
+
+            var cube,nrbC, flower;
+            var npt=300;//numero di punti sulla curva
+            var step=0;
+
+			var config = {
+				fog: false,
+				nurbsLine: false,
+				cube:true,
+				speed_up: 0,
+				scale: 0.2,
+			};
+            var FFobject = [];
+            var FFMatrix = new THREE.Matrix4();
+			var FFHelper;
+
+			init();
+			animate();
+
+			function init() {
+
+				create_gui();
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 2000 );
+                camera.position.set( 10, 10, 6 );
+
+				scene = new THREE.Scene();
+				scaleGroup = new THREE.Group();
+				scene.add(scaleGroup);
+				//colore al background
+				scene.background = new THREE.Color( 0x8ccbff);
+
+                const axesHelper = new THREE.AxesHelper( 2 );
+                //scene.add( axesHelper );
+
+                FFHelper = new THREE.AxesHelper( 0.4 );
+                //scene.add( FFHelper );
+
+				scene.add( new THREE.AmbientLight( 0x808080 ) );
+
+				const light = new THREE.DirectionalLight( 0xffffff, 1 );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+
+				/*var spotLight0 = new THREE.SpotLight(0xffff00);
+        		spotLight0.position.set(-40, 30, -10);
+        		spotLight0.lookAt(plane);
+        		scene.add(spotLight0);*/
+
+                var planeGeometry = new THREE.PlaneGeometry(5,5,1,1);
+                var planeMaterial = new THREE.MeshBasicMaterial({color: 0x008f39});
+                var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+                plane.position.x = 0;
+                plane.position.y = 0;
+                plane.position.z = -2;
+                scene.add(plane);
+
+				group = new THREE.Group();
+				//group.position.y = 50;
+				scene.add( group );
+
+                var geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                var material = new THREE.MeshPhongMaterial({ color: 0x265828});
+		        cube = new THREE.Mesh(geometry, material);
+		        //scene.add(cube);
+
+				const objLoader = new OBJLoader();
+				objLoader.load('./models/obj/Rose.obj', (root) => {
+					scaleGroup.add(root);
+					flower = root;
+				});
+
+				/*const mtlLoader = new MTLLoader();
+    			mtlLoader.load('.models/obj/Rose.mtl', (mtl) => {
+      				mtl.preload();
+				const objLoader = new OBJLoader();
+				mtl.materials.Material.side = THREE.DoubleSide;
+      			objLoader.setMaterials(mtl);
+				objLoader.load('./models/obj/Rose.obj', (root) => {
+					scene.add(root);
+					flower = root;
+				});
+			});*/
+		
+
+				// NURBS curve
+				const nurbsControlPoints = [];
+				var nurbsDegree = 8;
+                var nurbsKnots=[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1];
+
+				
+                var dim = nurbsKnots.length-(nurbsDegree+1);
+                var cp = [0.75,0,-0.5,1.0, 0.75,0.75,-0.5,1.0, -0.75,0.75,1,1.0, -0.75,0.75,1,1.0, -0.75,0,-1.5,1.0,
+                    -0.75,-0.75,1,1.0, -0.75,-0.75,1,1.0, 0.75,-0.75,-0.5,1.0, 0.75,0,-0.5,1.0];		
+                var j=0;
+                for ( let i = 0; i <= dim-1; i ++ ) {
+		           nurbsControlPoints.push(
+			           new THREE.Vector4(
+				          cp[j],
+                          cp[j+1],
+                          cp[j+2],
+				          cp[j+3] // weight of control point: higher means stronger attraction
+			            )
+		           );
+                   j=j+4;
+                }
+
+				const nurbsCurve = new NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
+
+				const nurbsGeometry = new THREE.BufferGeometry();
+				nrbC = nurbsCurve.getPoints(npt);
+                nurbsGeometry.setFromPoints( nrbC );
+		
+				const nurbsMaterial = new THREE.LineBasicMaterial( { color: 0xe220d0 } );
+
+               //Computa il FRENET FRAME per la nostra curva nurbs in tutti i punti,
+			//il frenet frame serve per determinare orientamento e posizione di un oggetto  che si muove lungo la curva
+				var dst=[];
+		        for (var i=0; i<=npt; i++){
+                   dst[i]=i/npt;
+			       FFobject[i]=nurbsCurve.computeFrenetFrames(dst[i]);
+                }
+			
+				nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
+		
+				scaleGroup.add( nurbsLine );
+
+				const nurbsControlPointsGeometry = new THREE.BufferGeometry();
+				nurbsControlPointsGeometry.setFromPoints( nurbsCurve.controlPoints );
+				const nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, opacity: 0.25, transparent: true } );
+				
+				const nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
+				nurbsControlPointsLine.position.copy( nurbsLine.position );
+				//Aggiunge i control points alla scena tramite group
+				group.add( nurbsControlPointsLine );
+
+                camera.up.x = 0;
+                camera.up.y = 0;
+                camera.up.z = 1;
+                camera.lookAt(scene.position);
+                
+				//Rendering 3d nel browser
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+                
+				//Monitor per FPS in alto a sx
+				stats = new Stats();
+				container.appendChild( stats.dom );
+                
+				//richiamo funzione onPointDown che serve quando si clicca il mouse
+				container.style.touchAction = 'none';
+				container.addEventListener( 'pointerdown', onPointerDown );
+                
+				//gestione resize
+				window.addEventListener( 'resize', onWindowResize );
+
+                //renderizza il cambio di camera nel browser
+                let cameraControls;
+				cameraControls = new OrbitControls( camera, renderer.domElement );
+                cameraControls.addEventListener( 'change', render );
+			}
+
+             // funzione che gestisce il resize del canvas
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function create_gui() {
+				const gui = new GUI();
+				const flowerFolder = gui.addFolder('Flower options');
+				flowerFolder.add(config,'scale',0.2,3);
+				flowerFolder.add(config, 'speed_up', 0, 5, 1);
+				const fogFolder = gui.addFolder('Fog');
+				fogFolder.add(config, 'fog');
+				const nurbsFolder = gui.addFolder('Nurbs options');
+				nurbsFolder.add(config, 'nurbsLine');
+				const changeFolder = gui.addFolder('Change object');
+				changeFolder.add(config, 'cube');
+				gui.close();
+				
+			}
+
+			//
+
+			function onPointerDown( event ) {
+
+				if ( event.isPrimary === false ) return;
+
+				pointerXOnPointerDown = event.clientX - windowHalfX;
+				targetRotationOnPointerDown = targetRotation;
+
+				document.addEventListener( 'pointermove', onPointerMove );
+				document.addEventListener( 'pointerup', onPointerUp );
+
+			}
+
+			function onPointerMove( event ) {
+
+				if ( event.isPrimary === false ) return;
+
+				pointerX = event.clientX - windowHalfX;
+
+				targetRotation = targetRotationOnPointerDown + ( pointerX - pointerXOnPointerDown ) * 0.02;
+
+			}
+
+			function onPointerUp() {
+
+				if ( event.isPrimary === false ) return;
+
+				document.removeEventListener( 'pointermove', onPointerMove );
+				document.removeEventListener( 'pointerup', onPointerUp );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+				nurbsLine.visible = config.nurbsLine;
+				//Serve a non far "buggare" l'oggetto nei punti più stretti della curva di NURBS grazie all'FFobject computato prima con il frenet frame					
+                FFMatrix.fromArray([FFobject[step].tangents.x,FFobject[step].tangents.y,FFobject[step].tangents.z,0,
+				                    FFobject[step].normals.x,FFobject[step].normals.y,FFobject[step].normals.z,0,
+								    FFobject[step].binormals.x,FFobject[step].binormals.y,FFobject[step].binormals.z,0,
+								    nrbC[step].x,nrbC[step].y,nrbC[step].z,1]);
+				//il cubo o il fiore devono copiarsi questa matrice
+
+				//change cube with flower
+				if(config.cube){
+					scaleGroup.remove(flower);
+					scaleGroup.add(cube)
+					cube.matrix.copy(FFMatrix);
+					cube.matrixAutoUpdate = false;
+				}else{
+					scaleGroup.remove(cube);
+
+					scaleGroup.add(flower);
+					flower.matrix.copy(FFMatrix);
+					flower.matrixAutoUpdate = false;//why???
+				}
+				//re-size
+				scaleGroup.scale.set(config.scale,config.scale,config.scale);
+                
+				//FOG
+				if(config.fog){
+					scene.fog = new THREE.FogExp2(0xCCCCCC, 0.08);
+				}else{
+					scene.fog = null;
+				}
+				//SPEED
+                step += config.speed_up;
+                if (step>=npt){
+                    step=0;
+                }
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>

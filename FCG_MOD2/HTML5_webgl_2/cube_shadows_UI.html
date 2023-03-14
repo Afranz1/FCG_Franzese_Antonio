@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+      <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+          <link href="resources/ui_style.css" rel="stylesheet" type="text/css">
+          <script type="text/javascript" src="resources/jquery-3.6.0.js"></script>
+          <script type="text/javascript" src="resources/ui_components.js"></script>
+          
+          <script type="text/javascript" src="resources/webgl-utils.js"></script>
+          <script type="text/javascript" src="resources/m4.js"></script>
+          <script type="text/javascript" src="cube_shadows_UI.js"></script>
+          
+          <body>
+              <div id= "canvas-container" class="canvas-container">
+                  <canvas width="512" height="512" id="mycanvas"></canvas>
+              </div>
+          </body>
+      </head>
+
+<script id="vertex-shader" type="not-javascript">
+attribute vec3 position;
+uniform mat4 Pmatrix; 
+uniform mat4 Vmatrix;
+uniform mat4 Mmatrix;
+attribute vec3 color;//the color of the point 
+varying vec3 vColor;
+void main(void) { //pre-built function
+  gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);
+  vColor=color;
+}
+</script>
+
+<script id="fragment-shader" type="not-javascript">
+precision mediump float; 
+varying vec3 vColor;
+void main(void) {
+  gl_FragColor = vec4(vColor, 1.);
+}
+</script>
+
+</html>  

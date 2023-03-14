@@ -1,0 +1,158 @@
+<!doctype html>
+<head></head>
+<link rel="stylesheet" href="styles.css">
+<body onload = "main()">
+    <canvas id="canvas"></canvas>
+    <div id = "fps_counter">
+    </div>
+<div id="uiContainer">
+  <div id="ui">
+  </div>
+</div>
+
+</script>
+<!-- vertex shader -->
+<script  id="color-vertex-shader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+
+uniform mat4 u_projection;
+uniform mat4 u_view;
+uniform mat4 u_world;
+
+void main() {
+  gl_Position = u_projection * u_view * u_world * a_position;
+}
+</script>
+<!-- fragment shader -->
+<script  id="color-fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform vec4 u_color;
+void main() {
+  gl_FragColor = u_color;
+}
+</script>
+
+<!-- vertex shader -->
+<script  id="vertex-shader-3d" type="x-shader/x-vertex">
+  attribute vec4 a_position;
+  attribute vec2 a_texcoord;
+  attribute vec3 a_normal;
+  attribute vec4 a_color;
+  
+  uniform mat4 u_modelMatrix;
+  uniform mat4 u_projection;
+  uniform mat4 u_view;
+  uniform mat4 u_world;
+  uniform mat4 u_textureMatrix;
+  uniform vec3 u_viewWorldPosition;
+  
+  varying vec2 v_texcoord;
+  varying vec4 v_projectedTexcoord;
+  varying vec3 v_normal;
+  varying vec3 v_surfaceToView;
+  varying vec3 view;
+  varying vec4 v_color;
+  
+  
+  void main() {
+    
+    vec4 worldPosition =  u_world * a_position ;
+  
+    gl_Position = u_projection   * worldPosition ;
+  
+    v_texcoord = a_texcoord;
+    view = u_viewWorldPosition ;
+    v_surfaceToView = u_viewWorldPosition - worldPosition.xyz;
+    v_projectedTexcoord = u_textureMatrix * worldPosition ;
+    v_color = a_color;
+  
+    v_normal = mat3(u_world) * a_normal;
+  }
+  </script>
+  
+  <!-- * u_view glposition fragment shader -->
+  <script  id="fragment-shader-3d" type="x-shader/x-fragment">
+  precision mediump float;
+  
+  varying vec2 v_texcoord;
+  varying vec4 v_projectedTexcoord;
+  varying vec3 v_normal;
+  varying vec3 v_surfaceToView;
+  varying vec3 view;
+  varying vec4 v_color;
+  
+  uniform vec4 u_colorMult;
+  uniform sampler2D u_texture;
+  uniform sampler2D u_projectedTexture;
+  uniform float u_bias;
+  uniform vec3 u_reverseLightDirection;
+  uniform float mesh;
+  uniform vec3 diffuse;
+  uniform vec3 ambient;
+  uniform vec3 emissive;
+  uniform vec3 specular;
+  uniform float shininess;
+  uniform float opacity;
+  uniform vec3 u_ambientLight;
+  uniform vec3 u_colorLight;
+  uniform sampler2D diffuseMap;
+  
+  void main() {
+   
+    vec3 normal = normalize(v_normal);
+  
+    float light = dot(normal, u_reverseLightDirection);
+    if (light<0.2){
+      light = 0.2;
+    } 
+  
+    vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
+    float currentDepth = projectedTexcoord.z + u_bias;
+  
+    bool inRange =
+        projectedTexcoord.x >= 0.0 &&
+        projectedTexcoord.x <= 1.0 &&
+        projectedTexcoord.y >= 0.0 &&
+        projectedTexcoord.y <= 1.0;
+
+    float projectedDepth = texture2D(u_projectedTexture, projectedTexcoord.xy).r;
+    float shadowLight = (inRange && projectedDepth <= currentDepth) ? 0.0 : 1.0;
+    vec4 texColor = texture2D(u_texture, v_texcoord) * u_colorMult;
+  
+  
+    vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+    vec3 halfVector = normalize(u_reverseLightDirection + surfaceToViewDirection);
+
+    float fakeLight = dot(u_reverseLightDirection, normal) * .5 + .5;
+    float specularLight = clamp(dot(normal, halfVector), 0.0, 1.0);
+
+   
+    vec4 diffuseMapColor = texture2D(diffuseMap, v_texcoord);
+    vec3 effectiveDiffuse = diffuse *diffuseMapColor.rgb  * v_color.rgb ;
+    float effectiveOpacity = opacity  * diffuseMapColor.a * v_color.a;
+    
+    vec4 color = (mesh==1.0) ? 
+      vec4((emissive + ambient * u_ambientLight + effectiveDiffuse * fakeLight + specular * pow(specularLight, shininess)) * shadowLight , effectiveOpacity) 
+      : vec4( texColor.rgb * light * shadowLight, texColor.a);
+
+    gl_FragColor = color;
+   
+  }
+  </script>
+
+
+
+
+</body>
+</html>
+<script src="libs/webgl-utils.js"></script>
+<script src="libs/utils.js"></script>
+<script src="libs/m4.js"></script>
+<script src="libs/primitives.js"></script>
+<script src="libs/jquery-3.6.0.js"></script>
+<script src="libs/obj_utils.js"></script>
+<script src="libs/dat.gui.js"></script>
+<script src="const.js"></script>
+<script src="main.js"></script>
+

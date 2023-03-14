@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+  <head>
+      <!--per ricaricare sempre la pagina da zero e non usare la cache-->
+      <META HTTP-EQUIV=”Pragma” CONTENT=”no-cache”>
+      <META HTTP-EQUIV=”Cache-Control” CONTENT=”no-cache”>
+      <!--per definire la dimensione e posizione dell'elemento canvas;
+        se i valori di width ed height inpostati qui sono superiori a
+        corrispondenti settati in <canvas width= .. height=.. l'immagine
+        verra' adattata ingrandendola, mentre se i valori sono inferiori,
+        l'immagine verra' adattata rimpicciolendola
+      -->
+<!-- 
+      <body>         
+          <style type="text/css">
+             canvas { border: 2px solid blue; }
+          </style>
+      </body>
+-->
+      <style>
+      body {
+            background: #dddddd;
+        }
+        #my_Canvas {
+            margin: 10px;
+            padding: 10px;
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+        .container {  /*to manage text on canvas and webgl */
+          position: relative;
+        }
+        #text { /*to manage text on canvas and webgl */
+          background-color: transparent;  /* needed because we setcanvas bg color to white */
+          position: absolute;
+          left: 100px;
+          top: 10px;
+          z-index: 10;
+        }
+      </style>
+   </head>
+
+<body>
+  <p> </p>
+  <button id = "Button1">Increase D</button>
+  <button id = "Button2">Decrease D</button>
+  <button id = "Button3">Increase Zm</button>
+  <button id = "Button4">Decrease Zm</button>
+  <button id = "Button5">Increase fov</button>
+  <button id = "Button6">Decrease fov</button>
+  <p> </p>
+
+<div class="container"> 
+  <canvas width="600" height="600" id="my_Canvas"></canvas>
+  <!-- to manage text on canvas and webgl -->
+  <canvas width="600" height="150" id="text"></canvas>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+varying vec4 fColor;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+void main()
+{  
+    vec3 pos = -(modelMatrix * vPosition).xyz;
+    
+    //fixed light postion
+    
+    vec3 light = lightPosition.xyz;
+    vec3 L = normalize( light - pos );
+ 
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+    
+    vec4 NN = vec4(vNormal,0);
+
+    // Transform vertex normal into eye coordinates
+    vec3 N = normalize( (modelMatrix*NN).xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) {
+       specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vPosition;
+    fColor = ambient + diffuse + specular;
+//    fColor = ambient + diffuse;
+    fColor.a = 1.0;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 fColor;
+void main()
+{
+    gl_FragColor = fColor;
+}
+</script>
+
+<script type="text/javascript" src="resources/webgl-utils.js"></script>
+<script type="text/javascript" src="resources/m4.js"></script>
+<script src="car3.js"></script>
+
+</body>
+</html>  

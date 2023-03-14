@@ -1,0 +1,55 @@
+Descrizione codici HTML5+canvas+JavaScript
+
+open_canvas.html       il più semplice, apre un canvas con un bordo
+
+draw_on_canvas0.html   disegna una crf su un canvas
+
+draw_on_canvas1.html   disegna una crf su un canvas e abilita un bottone Draw
+
+draw_on_canvas2.html   disegna o cancella in base a due bottoni Draw e Cancel
+                       una crf di raggio crescente
+
+read_value.html        permette di dare in input il numero di vertici di un
+                       poligono
+
+polygon.html           prende in input numero di vertici di un poligono
+                       e genera una figura complessa; il codice js è in polygon.js
+polygon.js
+
+text_on_canvas1.html   disegna un testo su canvas
+text_on_canvas1.js
+
+image_on_canvas1.html  copia una immagine dal DOM su canvas
+star.png
+
+image_on_canvas2.html  legge una immagine e la disegna sul DOM
+
+move_box_keyboard.html reagisce a tasti per muovere un rttangolo su canvas
+
+mouse_events.html      abilita gli eventi del mouse (visualizza su console)
+
+set_pixels.html        disegna singoli pixel su un ImageData
+set_pixels.js
+
+polygon_pixel.html     disegna un poligono usando Bresenham
+polygon_pixel.js
+draw_line.js
+
+polygon_float.html     disegna un poligono in coordinate float su window
+polygon_float.js
+
+ball.html              disegna una ball che si muove in un canvas e rimbalza
+                       sui bordi
+
+ball2.html             come il precedente, ma ora si controlla la velocità con
+                       i tasti A, D, W ed S
+
+ball3.html             come il precedente, ma ora si controlla la velocità con
+                       il mouse (mousedown e mousemove)
+
+ball3_2.html           come il precedente, ma ora ci sono due ball e coolidono.
+
+bezier.html            interazione con CP di curva di Bezier cubica
+bezier.js
+
+game.html              esempio di game

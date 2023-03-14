@@ -1,0 +1,12 @@
+ARTISTA
+-obj principale di movimento=pennello artista(W-A-S-D)
+-stanza contenente quadri vuoti
+-panchina nella stanza/divanetto(con texture)
+-aggiunta di una pointlight perchè siamo in un luogo chiuso
+-aggiunta ombre(attivare/disattivare)
+-gestione direzione e intensità luce(X-Y-Z)
+-camera libera per potersi spostare indipendemente dal pennello e poter osservare l'ambiente in tutti i suoi dettagli 
+-quadri con texture tela vuota all'interno
+-cambio texture dentro quadri per "dipongerli"
+-scroll rotella zoomIn/zoomOut
+-pressione tasto mouse più movimento mouse per spostare visuale
